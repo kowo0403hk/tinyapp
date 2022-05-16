@@ -15,6 +15,10 @@ app.get('/urls', (req, res) => {
   res.send('You are at the url page');
 })
 
+app.get('/hello', (req, res) => {
+  res.send('<html><body><b>Hello!</b></body></html>');
+})
+
 app.get('/urls.json', (req, res) => {
   res.json(urlDatabse);
 })
