@@ -19,5 +19,8 @@
   "homepage": "https://github.com/kowo0403hk/tinyapp#readme",
   "devDependencies": {
     "express": "^4.18.1"
+  },
+  "dependencies": {
+    "ejs": "^3.1.8"
   }
 }
