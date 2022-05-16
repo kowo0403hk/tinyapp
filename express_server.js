@@ -23,8 +23,9 @@ app.get('/', (req, res) => {
 });
 
 app.get('/urls', (req, res) => {
-  res.send('You are at the url page');
-})
+  const templateVars = { urls: urlDatabse };
+  res.render('urls_index', templateVars);
+});
 
 app.get('/hello', (req, res) => {
   res.send('<html><body><b>Hello!</b></body></html>');
@@ -48,7 +49,8 @@ app.get('/fetch', (req, res) => {
 // a catch all app.get and it has to be at the end because it will catch all the route user enters, the statusCode will always be 200, instead of 404, unless you also put in res.statusCode(404) or res.statusCode(404) alone inside this app.get callback
 app.get('*', (req, res) => {
   // res.send(`This is not the page you are looking for`); ==> this will result in a 200 status code
-  return res.statusCode(404).send('Page not found');
+  res.statusCode = 404;
+  return res.send('Page not found');
 })
 
 app.listen(PORT, () => {
