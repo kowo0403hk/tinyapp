@@ -16,5 +16,8 @@
   "bugs": {
     "url": "https://github.com/kowo0403hk/tinyapp/issues"
   },
-  "homepage": "https://github.com/kowo0403hk/tinyapp#readme"
+  "homepage": "https://github.com/kowo0403hk/tinyapp#readme",
+  "devDependencies": {
+    "express": "^4.18.1"
+  }
 }
