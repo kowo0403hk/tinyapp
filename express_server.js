@@ -1,5 +1,5 @@
 const express = require('express');
-const morgan = require('morgan'); // morgan is useful to log records on the server terminal
+const morgan = require('morgan'); 
 const bodyParser = require("body-parser");
 
 const app = express();
@@ -7,7 +7,6 @@ const PORT = 8080;
 
 // use ejs template
 app.set("view engine", "ejs");
-
 app.use(bodyParser.urlencoded({extended: true}));
 
 const urlDatabse = {
@@ -27,40 +26,33 @@ app.get('/urls', (req, res) => {
   res.render('urls_index', templateVars);
 });
 
-
 app.get("/urls/new", (req, res) => {
   res.render("urls_new");
 });
 
+// redirect from the shortener as long as the server is online
+app.get('/u/:shortURL', (req, res) => {
+  const longURL = urlDatabse[req.params.shortURL];
+
+  if (!longURL.includes('http://')) {
+    res.redirect(`http://${longURL}`);
+  } else {
+    res.redirect(longURL);
+  }
+})
+
+// http://localhost:8080/u/http//www.facebook.com
+
 app.get('/urls/:shortURL', (req, res) => {
+  // the route parameter will be based on user input
   const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabse[req.params.shortURL] };
   res.render('urls_show', templateVars);
 })
 
-app.get('/hello', (req, res) => {
-  res.send('<html><body><b>Hello!</b></body></html>');
-})
-
-app.get('/urls.json', (req, res) => {
-  res.json(urlDatabse);
-})
-
 app.post('/urls', (req, res) => {
-  console.log(req.body);
-  res.send("Ok");
+  // after receiveing the longURL input from the user, run the redirect function
+  res.redirect(`/urls/${randomString(req.body)}`);
 });
-
-
-// variable experiments
-app.get('/set', (req, res) => {
-  const a = 1;
-  res.send(`a = ${a}`);
-});
-
-app.get('/fetch', (req, res) => {
-  res.send(`a = ${a}`);
-  
-})
 
 // a catch all app.get and it has to be at the end because it will catch all the route user enters, the statusCode will always be 200, instead of 404, unless you also put in res.statusCode(404) or res.statusCode(404) alone inside this app.get callback
 app.get('*', (req, res) => {
@@ -72,3 +64,9 @@ app.get('*', (req, res) => {
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}`);
 });
+
+function randomString(obj) {
+  let shortURL = Math.floor((1 + Math.random()) * 0x100000).toString(16);
+  urlDatabse[shortURL] = obj.longURL;
+  return shortURL;
+}
