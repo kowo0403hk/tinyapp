@@ -15,6 +15,9 @@
             <input type="text" name="username" style="width: 200px;">
             <button class="btn btn-primary" type="submit" >Login</button>
           </form>
+          <form class="navbar navbar-expand-md navbar-dark bg-success" action="/register" method="GET">
+            <button class="btn btn-primary" type="submit" >Register</button>
+          </form>
         <% } else { %>
           <form class="navbar navbar-expand-md navbar-dark bg-success" action="/logout" method="POST">
             <label for="username">Logged In As: <%= username %></label>
