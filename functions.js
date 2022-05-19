@@ -27,7 +27,6 @@ function urlsForUser(req, dataBase) {
       newDataBase[item] = dataBase[item];
     }
   }
-  console.log(newDataBase);
   return newDataBase;
 }
 
