@@ -9,10 +9,8 @@
         <a class="nav-item nav-link" href="/urls">My URLs</a>
         <a class="nav-item nav-link" href="/urls/new">Create New URL </a>
 
-        <% if (username === undefined) { %>
-          <form class="navbar navbar-expand-md navbar-dark bg-success" action="/login" method="POST">
-            <label for="username">Username: </label>
-            <input type="text" name="username" style="width: 200px;">
+        <% if (user === undefined) { %>
+          <form class="navbar navbar-expand-md navbar-dark bg-success" action="/login" method="GET">
             <button class="btn btn-primary" type="submit" >Login</button>
           </form>
           <form class="navbar navbar-expand-md navbar-dark bg-success" action="/register" method="GET">
@@ -20,7 +18,7 @@
           </form>
         <% } else { %>
           <form class="navbar navbar-expand-md navbar-dark bg-success" action="/logout" method="POST">
-            <label for="username">Logged In As: <%= username %></label>
+            <label for="user_id">Logged In As: <%= user["email"] %></label>
             <button class="btn btn-primary" type="submit" >Logout</button>
           </form>
         <% } %>
