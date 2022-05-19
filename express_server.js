@@ -1,3 +1,5 @@
+const { randomID, emailLookUp, authentication, urlsForUser } = require('./functions');
+
 const express = require('express');
 const morgan = require('morgan'); 
 const bodyParser = require("body-parser");
@@ -6,13 +8,23 @@ const cookieParser = require("cookie-parser");
 const app = express();
 const PORT = 8080;
 
+// use of middleware
+app.use(morgan('dev'));
 app.set("view engine", "ejs");
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(cookieParser());
 
 const urlDatabase = {
-  "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com"
+  "b2xVn2": {
+    longURL: "http://www.lighthouselabs.ca",
+    dateSince: "2022-05-19T03:46:18.676Z",
+    userID: "test"
+  },
+  "9sm5xK": {
+    longURL: "http://www.google.com",
+    dateSince: "2022-05-19T03:49:30.577Z",
+    userID: "userRandomID"
+  }
 }
 
 const users = { 
@@ -33,61 +45,96 @@ const users = {
   }
 }
 
-// use of middleware
-app.use(morgan('dev'));
+
 
 ////////////////////////////////////////////////////////////////
 // GET method
 ////////////////////////////////////////////////////////////////
 
+app.get('/', (req, res) => {
+  if (authentication(req, users)) {
+    res.redirect('/urls');
+  } else {
+    res.redirect('/login');
+  }
+})
+
 //login page
 app.get('/login', (req, res) => {
-  const templateVars = {
-    user: users[req.cookies["user_id"]]
-  };
-  res.render('login', templateVars);
+  if (authentication(req, users)) {
+    return res.redirect('/urls');
+  } else {
+    const templateVars = {
+      user: users[req.cookies["user_id"]]
+    };
+    res.render('login', templateVars);
+  }
 });
+
+
 
 //home page
 app.get('/urls', (req, res) => {
-  console.log(urlDatabase, '\n', users);
-  const templateVars = { 
-    urls: urlDatabase,
-    user: users[req.cookies["user_id"]]
-  };
-  res.render('urls_index', templateVars);
+  if (authentication(req, users)) {
+    const newDataBase = urlsForUser(req, urlDatabase);
+    const templateVars = { 
+      urls: newDataBase,
+      user: users[req.cookies["user_id"]]
+    };
+    return res.render('urls_index', templateVars);
+  } else {
+    res.redirect('/login');
+  }
 });
 
 //create new URL page
 app.get("/urls/new", (req, res) => {
-  const templateVars = {
-    user: users[req.cookies["user_id"]]
-  };
-  res.render("urls_new", templateVars);
+  for (let user in users) {
+    if (users[user]["id"] === req.cookies["user_id"]) {
+      const templateVars = {
+        user: users[req.cookies["user_id"]]
+      };
+      return res.render("urls_new", templateVars);
+    }
+  }
+  res.redirect('/login');
 });
 
 // register page
 app.get('/register', (req, res) => {
-  const templateVars = { 
-    user: users[req.cookies["user_id"]]
-  };
-  res.render('register', templateVars);
+  if (authentication(req, users)) {
+    return res.redirect('/urls');
+  } else {
+    const templateVars = { 
+      user: users[req.cookies["user_id"]]
+    };
+    res.render('register', templateVars);
+  }
 })
 
 // shortURL page
 app.get('/urls/:shortURL', (req, res) => {
-  // the route parameter will be based on user input
-  const templateVars = { 
-    shortURL: req.params.shortURL, 
-    longURL: urlDatabase[req.params.shortURL],
-    user: users[req.cookies["user_id"]] };
-  res.render('urls_show', templateVars);
+  const keys = Object.keys(urlDatabase);
+  for (let key of keys) {
+    if (key === req.params.shortURL) {
+      const templateVars = { 
+        shortURL: req.params.shortURL, 
+        longURL: urlDatabase[req.params.shortURL]["longURL"],
+        dateSince: urlDatabase[req.params.shortURL]["dateSince"],
+        user: users[req.cookies["user_id"]],
+        authentication: authentication(req, users)
+       };
+      return res.render('urls_show', templateVars);
+    }
+  }
+  res.statusCode = 404;
+  res.sendStatus(res.statusCode);
 })
 
 
 // redirect from the shortener as long as the server is online
 app.get('/u/:shortURL', (req, res) => {
-  const longURL = urlDatabase[req.params.shortURL];
+  const longURL = urlDatabase[req.params.shortURL]["longURL"];
 
   if (!longURL.includes('http://')) {
     res.redirect(`http://${longURL}`);
@@ -108,7 +155,6 @@ app.post('/login', (req, res) => {
       return res.redirect('/urls');
     }
   }
-
   res.statusCode = 403;
   res.send(res.statusCode);
 })
@@ -117,8 +163,6 @@ app.post('/logout', (req, res) => {
   res.clearCookie('user_id');
   res.redirect('/urls');
 })
-
-
 
 app.post('/register', (req, res) => {
   if (emailLookUp(req.body, users)) {
@@ -139,32 +183,49 @@ app.post('/register', (req, res) => {
 
 // for new short URL creation
 app.post('/urls', (req, res) => {
-  let shortURL = randomID();
-  urlDatabase[shortURL] = req.body.longURL;
-  res.redirect(`/urls/${shortURL}`);
+    if (authentication(req, users)) {
+      let shortURL = randomID();
+      urlDatabase[shortURL] = {
+        "longURL": req.body.longURL,
+        "dateSince": (new Date()).toString(),
+        "userID": req.cookies["user_id"],
+      }
+      console.log(urlDatabase);
+      return res.redirect(`/urls/${shortURL}`);
+      } else {
+        res.redirect('/login');
+      }
 });
 
 
 // use POST method to delete URL
 app.post('/urls/:shortURL/delete', (req, res) => {
-  let shortURL = req.params.shortURL;
-  delete urlDatabase[shortURL];
-  res.redirect('/urls');
+  if (authentication(req, users)) {
+    let shortURL = req.params.shortURL;
+    delete urlDatabase[shortURL];
+    return res.redirect('/urls');
+  } else {
+    res.statusCode = 403;
+    return res.sendStatus(res.statusCode)
+  }
 })
 
 // Uuse POST method to update URL
 app.post('/urls/:id', (req, res) => {
-  let shortURL = req.params.id
-  urlDatabase[shortURL] = req.body.longURL;
-  res.redirect('/urls');
+  if (authentication(req, users)) {
+    let shortURL = req.params.id
+    urlDatabase[shortURL]["longURL"] = req.body.longURL;
+    return res.redirect('/urls');
+  } else {
+    res.statusCode = 404;
+    res.sendStatus(res.statusCode);
+  }
+
 });
-
-
 
 ////////////////////////////////////////////////////////////////
 // Error catcher and misc.
 ////////////////////////////////////////////////////////////////
-
 
 app.get('*', (req, res) => {
   res.statusCode = 404;
@@ -174,22 +235,3 @@ app.get('*', (req, res) => {
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}`);
 });
-
-
-////////////////////////////////////////////////////////////////
-// Functions to be exported
-////////////////////////////////////////////////////////////////
-
-function randomID() {
-  return Math.floor((1 + Math.random()) * 0x100000).toString(16);
-}
-
-function emailLookUp(reqBody, DataBase) {
-  for (let id in DataBase) {
-    if (DataBase[id]["email"] === reqBody["email"]) {
-      return true;
-    }
-  }
-  return false;
-}
-
