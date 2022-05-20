@@ -27,14 +27,14 @@ app.use(cookieSession({
 const urlDatabase = {
   "b2xVn2": {
     longURL: "http://www.lighthouselabs.ca",
-    dateSince: "2022-05-19T03:46:18.676Z",
+    dateSince: "May 19 2022",
     userID: "test",
     totalVisits: 0,
     uniqueVisits: []
   },
   "9sm5xK": {
     longURL: "http://www.google.com",
-    dateSince: "2022-05-19T03:49:30.577Z",
+    dateSince: "May 10 2022",
     userID: "userRandomID",
     totalVisits: 0,
     uniqueVisits: []
@@ -220,7 +220,7 @@ app.post('/urls', (req, res) => {
   if (isAuthenticated(req, users)) {
     const longURL = req.body.longURL;
     const userID = req.session.userID;
-    const dateSince = new Date().toString();
+    const dateSince = new Date().toString().substring(4, 15);
     const id = randomID();
     urlDatabase[id] = {
       longURL,
