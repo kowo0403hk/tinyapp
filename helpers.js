@@ -2,18 +2,18 @@ function randomID() {
   return Math.floor((1 + Math.random()) * 0x1000000).toString(16).substring(1);
 }
 
-function emailLookUp(reqBody, dataBase) {
-  for (let id in dataBase) {
-    if (dataBase[id]["email"] === reqBody["email"]) {
-      return true;
-    }
+
+function getUserByEmail(email, dataBase) {
+  for (const id in dataBase) {
+    if (dataBase[id]["email"] === email)
+    return id;
   }
-  return false;
+  return undefined;
 }
 
 function authentication(req, dataBase) {
   for (const user in dataBase) {
-    if (dataBase[user]["id"] === req.cookies["user_id"]) {
+    if (dataBase[user]["id"] === req.session.userID) {
       return true;
     }
   }
@@ -23,7 +23,7 @@ function authentication(req, dataBase) {
 function urlsForUser(req, dataBase) {
   const newDataBase = {};
   for (const item in dataBase) {
-    if (req.cookies["user_id"] === dataBase[item]["userID"]) {
+    if (req.session.userID === dataBase[item]["userID"]) {
       newDataBase[item] = dataBase[item];
     }
   }
@@ -32,7 +32,7 @@ function urlsForUser(req, dataBase) {
 
 module.exports = {
   randomID,
-  emailLookUp,
+  getUserByEmail,
   authentication,
   urlsForUser
 }

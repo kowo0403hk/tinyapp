@@ -1,7 +1,7 @@
 const { randomID, emailLookUp, authentication, urlsForUser } = require('./functions');
-
 const express = require('express');
 const morgan = require('morgan'); 
+const bcrypt = require('bcryptjs');
 const cookieParser = require("cookie-parser");
 
 const app = express();
@@ -12,6 +12,7 @@ app.use(morgan('dev'));
 app.set("view engine", "ejs");
 app.use(express.urlencoded({extended: true}));
 app.use(cookieParser());
+
 
 const urlDatabase = {
   "b2xVn2": {
@@ -60,7 +61,7 @@ app.get('/', (req, res) => {
 
 //login page
 app.get('/login', (req, res) => {
-  if (authentication(req, users)) {
+  if (result) {
     return res.redirect('/urls');
   } else {
     const templateVars = {
@@ -73,6 +74,7 @@ app.get('/login', (req, res) => {
 
 //home page
 app.get('/urls', (req, res) => {
+  console.log(users);
   if (authentication(req, users)) {
     const newDataBase = urlsForUser(req, urlDatabase);
     const templateVars = { 
@@ -162,17 +164,20 @@ app.post('/logout', (req, res) => {
   res.redirect('/urls');
 })
 
+// create new account
 app.post('/register', (req, res) => {
   if (emailLookUp(req.body, users)) {
     res.statusCode = 400;
     res.clearCookie("user_id");
     return res.sendStatus(res.statusCode);
   } else {
+    const salt = bcrypt.genSaltSync(20);
+    const hash = bcrypt.hashSync(req.body.password, salt);
     let generatedID = randomID();
     users[generatedID] = {
       id: generatedID,
       email: req.body.email,
-      password: req.body.password
+      password: hash
     }
     res.cookie('user_id', generatedID);
     res.redirect('/urls');
