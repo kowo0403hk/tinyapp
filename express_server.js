@@ -3,6 +3,7 @@ const express = require('express');
 const morgan = require('morgan');
 const bcrypt = require('bcryptjs');
 const cookieSession = require('cookie-session');
+const methodOverride = require('method-override');
 
 const app = express();
 const PORT = 8080;
@@ -13,6 +14,7 @@ const PORT = 8080;
 app.use(morgan('dev'));
 app.set('view engine', 'ejs');
 app.use(express.urlencoded({extended: true}));
+app.use(methodOverride('_method'));
 app.use(cookieSession({
   name: 'session',
   keys: ['fujita', 'piggy', 'family']
@@ -26,12 +28,16 @@ const urlDatabase = {
   "b2xVn2": {
     longURL: "http://www.lighthouselabs.ca",
     dateSince: "2022-05-19T03:46:18.676Z",
-    userID: "test"
+    userID: "test",
+    totalVisit: 0,
+    uniqueVisit: []
   },
   "9sm5xK": {
     longURL: "http://www.google.com",
     dateSince: "2022-05-19T03:49:30.577Z",
-    userID: "userRandomID"
+    userID: "userRandomID",
+    totalVisit: 0,
+    uniqueVisit: []
   }
 }
 
@@ -83,7 +89,6 @@ app.get('/login', (req, res) => {
 
 // main user interface once logged in
 app.get('/urls', (req, res) => {
-  console.log(users);
   if (authentication(req, users)) {
     const newDataBase = urlsForUser(req, urlDatabase);
     const templateVars = {
@@ -122,9 +127,20 @@ app.get('/register', (req, res) => {
 
 // actual shortURL page
 app.get('/urls/:shortURL', (req, res) => {
+  const shortURL = req.params.shortURL;
+
+  urlDatabase[shortURL]['totalVisit']++;
+
+  const ip = req.headers['X-forwarded-for'] || req.socket.remoteAddress;
+  const uniqueVisit = urlDatabase[shortURL]['uniqueVisit'];
+
+  if (!uniqueVisit.includes(ip)) {
+    uniqueVisit.push(ip);
+  };
+
   const keys = Object.keys(urlDatabase);
   for (let key of keys) {
-    if (key === req.params.shortURL) {
+    if (key === shortURL) {
       const templateVars = {
         shortURL: key,
         user: users[req.session.userID],
@@ -209,7 +225,9 @@ app.post('/urls', (req, res) => {
     urlDatabase[id] = {
       longURL,
       dateSince,
-      userID
+      userID,
+      totalVisit: 0,
+      uniqueVisit: []
     }
     return res.redirect(`/urls/${id}`);
   } else {
@@ -218,8 +236,13 @@ app.post('/urls', (req, res) => {
   }
 });
 
+
+/////////////////////////////////////////////////////////////
+// Strtech: Method-override
+/////////////////////////////////////////////////////////////
+
 // update existing shortURL
-app.post('/urls/:shortURL', (req, res) =>{
+app.put('/urls/:shortURL', (req, res) =>{
   if (authentication(req, users)) {
     let shortURL = req.params.shortURL;
     urlDatabase[shortURL]["longURL"] = req.body.longURL;
@@ -230,8 +253,9 @@ app.post('/urls/:shortURL', (req, res) =>{
   }
 });
 
+
 // delete any existing shortURL
-app.post('/urls/:shortURL/delete', (req, res) =>{
+app.delete('/urls/:shortURL', (req, res) =>{
   if (authentication(req, users)) {
     let shortURL = req.params.shortURL;
     delete urlDatabase[shortURL];
@@ -241,6 +265,7 @@ app.post('/urls/:shortURL/delete', (req, res) =>{
     res.sendStatus(res.statusCode);
   }
 });
+
 
 /////////////////////////////////////////////////////////////
 // Error catcher and misc.
