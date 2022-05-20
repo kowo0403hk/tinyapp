@@ -40,16 +40,19 @@ const users = {
     id: "userRandomID", 
     email: "user@example.com", 
     password: "$2a$10$GPSn.vvLhuzJp2ydhidEGeMeNalkHc1j1GXEjLJIuPM7QPRX0kDb2"
+    // when testing, use 1234 for password
   },
  "user2RandomID": {
     id: "user2RandomID", 
     email: "user2@example.com", 
     password: "$2a$10$HdCPE9VSvpw8o3rcsVEcc.FJDC/RCUEzLlf9fiBfvswRSNXQn3LM2"
+    // when testing, use 12345 for password
   },
   "test": {
     id: "test", 
     email: "test@test.com", 
     password: "$2a$10$Syuo03sCkYb6gFelM3dnCu6gEQWvJ65Uuk/k0UaFp3Q8kCsWKesYS"
+    // when testing, use 1234 for password
   }
 }
 
@@ -57,6 +60,7 @@ const users = {
 // GET
 /////////////////////////////////////////////////////////////
 
+// index page for redirection. If logged in, redirect to main user inferface, else redirect to login page
 app.get('/', (req, res) => {
   if(authentication(req, users)) {
     return res.redirect('urls');
@@ -65,6 +69,7 @@ app.get('/', (req, res) => {
   }
 });
 
+// login page
 app.get('/login', (req, res) => {
   if (authentication(req, users)) {
     return res.redirect('/urls');
@@ -76,6 +81,7 @@ app.get('/login', (req, res) => {
   }
 });
 
+// main user interface once logged in
 app.get('/urls', (req, res) => {
   console.log(users);
   if (authentication(req, users)) {
@@ -90,6 +96,7 @@ app.get('/urls', (req, res) => {
   }
 });
 
+// new shortURL creation page
 app.get('/urls/new', (req, res) => {
   if (authentication(req, users)) {
     const templateVars = {
@@ -101,6 +108,7 @@ app.get('/urls/new', (req, res) => {
   }
 });
 
+// account registration page
 app.get('/register', (req, res) => {
   if (authentication(req, users)) {
     return res.render('/urls');
@@ -112,6 +120,7 @@ app.get('/register', (req, res) => {
   }
 });
 
+// actual shortURL page
 app.get('/urls/:shortURL', (req, res) => {
   const keys = Object.keys(urlDatabase);
   for (let key of keys) {
@@ -130,6 +139,7 @@ app.get('/urls/:shortURL', (req, res) => {
   res.sendStatus(res.statusCode);
 });
 
+// redirection page for shortURL
 app.get('/u/:shortURL', (req, res) => {
   const longURL = urlDatabase[req.params.shortURL]["longURL"];
 
@@ -144,6 +154,7 @@ app.get('/u/:shortURL', (req, res) => {
 // POST
 /////////////////////////////////////////////////////////////
 
+// registration
 app.post('/register', (req, res) => {
   let email = req.body.email;
   let user = getUserByEmail(email, users);
@@ -165,29 +176,30 @@ app.post('/register', (req, res) => {
   }
 });
 
+// login
 app.post('/login', (req, res) => {
   const password = req.body.password;
   const email = req.body.email;
   const user = getUserByEmail(email, users);
 
   for (const id in users) {
-    const hashResult = bcrypt.compareSync(password, users[id]["password"]);
+    const hashResult = bcrypt.compareSync(password, users[id]['password']);
     if (user !== undefined && users[id]['email'] === email && hashResult) {
-      // res.cookie('user_id', id);
       req.session['userID'] = id;
       return res.redirect('/urls');
     }
   }
-
   res.statusCode = 403;
   res.send('Invalid username or password');
 });
 
+// logout
 app.post('/logout', (req, res) => {
   req.session = null;
   res.redirect('/login');
 });
 
+// creation of new shortURL
 app.post('/urls', (req, res) => {
   if (authentication(req, users)) {
     const longURL = req.body.longURL;
@@ -200,13 +212,17 @@ app.post('/urls', (req, res) => {
       userID
     }
     return res.redirect(`/urls/${id}`);
+  } else {
+    res.statusCode = 403;
+    res.sendStatus(res.statusCode);
   }
 });
 
-app.post('/urls/:id', (req, res) =>{
+// update existing shortURL
+app.post('/urls/:shortURL', (req, res) =>{
   if (authentication(req, users)) {
-    let id = req.params.id;
-    urlDatabase[id]["longURL"] = req.body.longURL;
+    let shortURL = req.params.shortURL;
+    urlDatabase[shortURL]["longURL"] = req.body.longURL;
     return res.redirect('/urls');
   } else {
     res.statusCode = 403;
@@ -214,10 +230,11 @@ app.post('/urls/:id', (req, res) =>{
   }
 });
 
-app.post('/urls/:id/delete', (req, res) =>{
+// delete any existing shortURL
+app.post('/urls/:shortURL/delete', (req, res) =>{
   if (authentication(req, users)) {
-    let id = req.params.id;
-    delete urlDatabase[id];
+    let shortURL = req.params.shortURL;
+    delete urlDatabase[shortURL];
     return res.redirect('/urls/');
   } else {
     res.statusCode = 403;

@@ -20,8 +20,7 @@
       Date Since: <%= dateSince %>
       <br>
       <% if (authentication === true) { %>
-      <% let id = shortURL %>
-      <form action="/urls/<%= id %>" method="POST">
+      <form action="/urls/<%= shortURL %>" method="POST">
           New URL:
           <input type="text" name="longURL" placeholder="http://" style="width: 300px; margin: 1em">
           <button type="submit" class="btn btn-primary">Update</button>
