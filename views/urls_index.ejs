@@ -32,8 +32,8 @@
           <tr>
             <td><a href="/urls/<%= url %>"><%= url %></a></td>
             <td><%= urls[url]['longURL'] %></td>
-            <td><%= urls[url]['totalVisit'] %></td>
-            <td><%= urls[url]['uniqueVisit'].length %></td>
+            <td><%= urls[url]['totalVisits'] %></td>
+            <td><%= urls[url]['uniqueVisits'].length %></td>
             <td> <form method="GET" action="/urls/<%= url %>"><button class="btn btn-primary" type="submit">Update</button></form></td>
             <td><form method="POST" action="/urls/<%= url %>?_method=DELETE"><button class="btn btn-primary" type="submit">Delete</button></form></td>
           </tr>

@@ -1,9 +1,9 @@
-const { randomID, getUserByEmail, urlsForUser, authentication } = require('./helpers');
 const express = require('express');
 const morgan = require('morgan');
 const bcrypt = require('bcryptjs');
 const cookieSession = require('cookie-session');
 const methodOverride = require('method-override');
+const { randomID, getUserByEmail, urlsForUser, isAuthenticated } = require('./helpers');
 
 const app = express();
 const PORT = 8080;
@@ -29,15 +29,15 @@ const urlDatabase = {
     longURL: "http://www.lighthouselabs.ca",
     dateSince: "2022-05-19T03:46:18.676Z",
     userID: "test",
-    totalVisit: 0,
-    uniqueVisit: []
+    totalVisits: 0,
+    uniqueVisits: []
   },
   "9sm5xK": {
     longURL: "http://www.google.com",
     dateSince: "2022-05-19T03:49:30.577Z",
     userID: "userRandomID",
-    totalVisit: 0,
-    uniqueVisit: []
+    totalVisits: 0,
+    uniqueVisits: []
   }
 }
 
@@ -68,7 +68,7 @@ const users = {
 
 // index page for redirection. If logged in, redirect to main user inferface, else redirect to login page
 app.get('/', (req, res) => {
-  if(authentication(req, users)) {
+  if(isAuthenticated(req, users)) {
     return res.redirect('urls');
   } else {
     return res.redirect('/login');
@@ -77,7 +77,7 @@ app.get('/', (req, res) => {
 
 // login page
 app.get('/login', (req, res) => {
-  if (authentication(req, users)) {
+  if (isAuthenticated(req, users)) {
     return res.redirect('/urls');
   } else {
     const templateVars = {
@@ -89,7 +89,7 @@ app.get('/login', (req, res) => {
 
 // main user interface once logged in
 app.get('/urls', (req, res) => {
-  if (authentication(req, users)) {
+  if (isAuthenticated(req, users)) {
     const newDataBase = urlsForUser(req, urlDatabase);
     const templateVars = {
       urls: newDataBase,
@@ -103,7 +103,7 @@ app.get('/urls', (req, res) => {
 
 // new shortURL creation page
 app.get('/urls/new', (req, res) => {
-  if (authentication(req, users)) {
+  if (isAuthenticated(req, users)) {
     const templateVars = {
       user: users[req.session.userID]
     };
@@ -115,7 +115,7 @@ app.get('/urls/new', (req, res) => {
 
 // account registration page
 app.get('/register', (req, res) => {
-  if (authentication(req, users)) {
+  if (isAuthenticated(req, users)) {
     return res.render('/urls');
   } else {
     const templateVars = {
@@ -129,22 +129,22 @@ app.get('/register', (req, res) => {
 app.get('/urls/:shortURL', (req, res) => {
   const shortURL = req.params.shortURL;
 
-  urlDatabase[shortURL]['totalVisit']++;
+  urlDatabase[shortURL]['totalVisits']++;
 
   const ip = req.headers['X-forwarded-for'] || req.socket.remoteAddress;
-  const uniqueVisit = urlDatabase[shortURL]['uniqueVisit'];
+  const uniqueVisits = urlDatabase[shortURL]['uniqueVisits'];
 
-  if (!uniqueVisit.includes(ip)) {
-    uniqueVisit.push(ip);
+  if (!uniqueVisits.includes(ip)) {
+    uniqueVisits.push(ip);
   };
 
   const keys = Object.keys(urlDatabase);
-  for (let key of keys) {
+  for (const key of keys) {
     if (key === shortURL) {
       const templateVars = {
         shortURL: key,
         user: users[req.session.userID],
-        authentication: authentication(req, users),
+        authentication: isAuthenticated(req, users),
         longURL: urlDatabase[key]["longURL"],
         dateSince: urlDatabase[key]["dateSince"],
       }
@@ -170,10 +170,10 @@ app.get('/u/:shortURL', (req, res) => {
 // POST
 /////////////////////////////////////////////////////////////
 
-// registration
+// registration and go back to login page
 app.post('/register', (req, res) => {
-  let email = req.body.email;
-  let user = getUserByEmail(email, users);
+  const email = req.body.email;
+  const user = getUserByEmail(email, users);
   if (user !== undefined) {
     res.statusCode = 400;
     req.session = null;
@@ -181,7 +181,7 @@ app.post('/register', (req, res) => {
   } else {
     const salt = bcrypt.genSaltSync(10);
     const password = bcrypt.hashSync(req.body.password, salt);
-    let id = randomID();
+    const id = randomID();
 
     users[id] = {
       id,
@@ -217,7 +217,7 @@ app.post('/logout', (req, res) => {
 
 // creation of new shortURL
 app.post('/urls', (req, res) => {
-  if (authentication(req, users)) {
+  if (isAuthenticated(req, users)) {
     const longURL = req.body.longURL;
     const userID = req.session.userID;
     const dateSince = new Date().toString();
@@ -226,8 +226,8 @@ app.post('/urls', (req, res) => {
       longURL,
       dateSince,
       userID,
-      totalVisit: 0,
-      uniqueVisit: []
+      totalVisits: 0,
+      uniqueVisits: []
     }
     return res.redirect(`/urls/${id}`);
   } else {
@@ -243,8 +243,8 @@ app.post('/urls', (req, res) => {
 
 // update existing shortURL
 app.put('/urls/:shortURL', (req, res) =>{
-  if (authentication(req, users)) {
-    let shortURL = req.params.shortURL;
+  if (isAuthenticated(req, users)) {
+    const shortURL = req.params.shortURL;
     urlDatabase[shortURL]["longURL"] = req.body.longURL;
     return res.redirect('/urls');
   } else {
@@ -256,8 +256,8 @@ app.put('/urls/:shortURL', (req, res) =>{
 
 // delete any existing shortURL
 app.delete('/urls/:shortURL', (req, res) =>{
-  if (authentication(req, users)) {
-    let shortURL = req.params.shortURL;
+  if (isAuthenticated(req, users)) {
+    const shortURL = req.params.shortURL;
     delete urlDatabase[shortURL];
     return res.redirect('/urls/');
   } else {

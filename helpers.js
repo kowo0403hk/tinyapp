@@ -11,7 +11,7 @@ function getUserByEmail(email, dataBase) {
   return undefined;
 }
 
-function authentication(req, dataBase) {
+function isAuthenticated(req, dataBase) {
   for (const user in dataBase) {
     if (dataBase[user]["id"] === req.session.userID) {
       return true;
@@ -33,6 +33,6 @@ function urlsForUser(req, dataBase) {
 module.exports = {
   randomID,
   getUserByEmail,
-  authentication,
+  isAuthenticated,
   urlsForUser
 }
